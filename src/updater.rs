@@ -98,6 +98,8 @@ pub struct NavMeshSettings {
     pub scale: Vec2,
     /// Agent radius used to inflate the obstacles.
     pub agent_radius: f32,
+    /// Cost of navigating across this mesh. Multiplies distances.
+    pub cost: f32,
 }
 
 impl Default for NavMeshSettings {
@@ -116,6 +118,7 @@ impl Default for NavMeshSettings {
             stitches: vec![],
             scale: Vec2::ONE,
             agent_radius: 0.0,
+            cost: 1.0,
         }
     }
 }
@@ -164,6 +167,7 @@ fn build_navmesh<T: ObstacleSource>(
 ) -> (Option<Triangulation>, Layer) {
     let up = (mesh_transform.forward(), settings.upward_shift);
     let scale = settings.scale;
+    let cost = settings.cost;
     let base = if settings.cached.is_none() {
         let mut base = settings.fixed;
         base.set_agent_radius(settings.agent_radius);
@@ -203,6 +207,7 @@ fn build_navmesh<T: ObstacleSource>(
         triangulation.simplify(settings.simplify);
     }
     let mut layer = triangulation.as_layer();
+    layer.cost = cost;
 
     for _ in 0..settings.merge_steps {
         layer.merge_polygons();
