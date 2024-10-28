@@ -286,6 +286,14 @@ impl NavMesh {
         }
     }
 
+    /// Get the positions of a point, including its layer.
+    ///
+    /// If the point can be in multiple layers, in case of overlapping layers, returns all possible layers.
+    pub fn get_point_layer(&self, point: Vec3) -> Vec<polyanya::Coords> {
+        let point_in_navmesh = self.world_to_mesh().transform_point(point).xy();
+        self.mesh.get_point_layer(point_in_navmesh)
+    }
+
     /// Check if a 3d point is in a navigationable part of the mesh, using the [`Mesh::transform`]
     pub fn transformed_is_in_mesh(&self, point: Vec3) -> bool {
         let point_in_navmesh = self.world_to_mesh().transform_point(point).xy();
