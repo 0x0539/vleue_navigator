@@ -193,7 +193,6 @@ fn build_navmesh<T: ObstacleSource>(
 ) -> (Option<Triangulation>, Layer) {
     let up = (mesh_transform.forward(), settings.upward_shift);
     let scale = settings.scale;
-    let cost = settings.cost;
     let base = if settings.cached.is_none() {
         let mut base = settings.fixed;
         base.set_agent_radius(settings.agent_radius);
@@ -234,7 +233,6 @@ fn build_navmesh<T: ObstacleSource>(
         triangulation.simplify(settings.simplify);
     }
     let mut layer = triangulation.as_layer();
-    layer.cost = cost;
 
     for _ in 0..settings.merge_steps {
         layer.merge_polygons();
