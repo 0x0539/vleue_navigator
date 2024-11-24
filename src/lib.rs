@@ -309,7 +309,7 @@ impl NavMesh {
             path_with_layers: path
                 .path_with_layers
                 .into_iter()
-                .map(|(coords, layer)| (transform.transform_point(coords.extend(0.0)), layer))
+                .map(|(coords, layer)| (transform.transform_point(to_bevy3(coords.extend(0.0))), layer))
                 .collect(),
         }
     }
@@ -452,21 +452,21 @@ pub fn display_navmesh(
                 continue;
             };
             #[cfg(feature = "detailed-layers")]
-            let scale = layer.scale;
+            let scale: glam::Vec2 = layer.scale;
             #[cfg(not(feature = "detailed-layers"))]
-            let scale = Vec2::ONE;
+            let scale: glam::Vec2 = glam::Vec2::ONE;
             for polygon in &layer.polygons {
                 let mut v = polygon
                     .vertices
                     .iter()
                     .filter(|i| **i != u32::MAX)
-                    .map(|i| to_bevy2(layer.vertices[*i as usize].coords) * scale)
+                    .map(|i| to_bevy2(layer.vertices[*i as usize].coords * scale))
                     .map(|v| mesh_to_world.transform_point(v.extend(0.0)))
                     .collect::<Vec<_>>();
                 if !v.is_empty() {
                     let first = polygon.vertices[0];
                     let first = &layer.vertices[first as usize];
-                    v.push(mesh_to_world.transform_point((to_bevy2(first.coords) * scale).extend(0.0)));
+                    v.push(mesh_to_world.transform_point((to_bevy2(first.coords * scale)).extend(0.0)));
                     gizmos.linestrip(v, color);
                 }
             }

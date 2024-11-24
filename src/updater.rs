@@ -240,7 +240,7 @@ fn build_navmesh<T: ObstacleSource>(
     }
     #[cfg(feature = "detailed-layers")]
     {
-        layer.scale = scale;
+        layer.scale = to_glam2(scale);
     }
     layer.remove_useless_vertices();
     (
