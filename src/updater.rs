@@ -16,7 +16,7 @@ use bevy::{
 };
 use polyanya::{Layer, Mesh, Triangulation};
 
-use crate::{obstacles::ObstacleSource, NavMesh};
+use crate::{to_glam2, obstacles::ObstacleSource, NavMesh};
 
 /// A Marker component for an obstacle that can be cached.
 ///
@@ -206,7 +206,7 @@ fn build_navmesh<T: ObstacleSource>(
                     .into_iter()
             })
             .filter(|p: &Vec<Vec2>| !p.is_empty())
-            .map(|p| p.into_iter().map(|v| v / scale).collect::<Vec<_>>());
+            .map(|p| p.into_iter().map(|v| to_glam2(v / scale)).collect::<Vec<_>>());
         base.add_obstacles(obstacle_polys);
         if settings.simplify != 0.0 {
             base.simplify(settings.simplify);
@@ -226,7 +226,8 @@ fn build_navmesh<T: ObstacleSource>(
                 .into_iter()
         })
         .filter(|p: &Vec<Vec2>| !p.is_empty())
-        .map(|p| p.into_iter().map(|v| v / scale).collect::<Vec<_>>());
+        .map(|p| p.into_iter().map(|v| to_glam2(v / scale)).collect::<Vec<_>>());
+
     triangulation.add_obstacles(obstacle_polys);
 
     if settings.simplify != 0.0 {
@@ -543,7 +544,7 @@ fn update_navmesh_asset(
                 mesh.remove_stitches_to_layer(*layer_id);
                 mesh.layers[*layer_id as usize] = layer;
                 // TODO: rotate this to get the value in the correct space
-                mesh.layers[*layer_id as usize].offset = global_transform.translation().xz();
+                mesh.layers[*layer_id as usize].offset = to_glam2(global_transform.translation().xz());
 
                 let stitch_segments =
                     settings
@@ -573,12 +574,12 @@ fn update_navmesh_asset(
                     let layer_to = &mesh.layers[*target_layer as usize];
 
                     let indices_from = layer_from.get_vertices_on_segment(
-                        stitch_segment[0] - layer_from.offset,
-                        stitch_segment[1] - layer_from.offset,
+                        to_glam2(stitch_segment[0]) - layer_from.offset,
+                        to_glam2(stitch_segment[1]) - layer_from.offset,
                     );
                     let indices_to = layer_to.get_vertices_on_segment(
-                        stitch_segment[0] - layer_to.offset,
-                        stitch_segment[1] - layer_to.offset,
+                        to_glam2(stitch_segment[0]) - layer_to.offset,
+                        to_glam2(stitch_segment[1]) - layer_to.offset,
                     );
                     if indices_from.len() != indices_to.len() {
                         debug!(

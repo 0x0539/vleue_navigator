@@ -15,6 +15,7 @@ categories = ["game-development"]
 [dependencies]
 itertools = "0.13"
 tracing = { version = "0.1", optional = true }
+glam = { version = "0.29", features = ["approx"] }
 
 [dependencies.avian2d]
 version = "0.1"
@@ -30,8 +31,8 @@ optional = true
 
 [dependencies.polyanya]
 version = "0.11.1"
-git = "https://github.com/0x0539/polyanya.git"
-branch = "scaled-layers-2"
+git = "https://github.com/vleue/polyanya.git"
+# branch = "scaled-layers-2"
 features = ["detailed-layers"]
 
 [dependencies.bevy]

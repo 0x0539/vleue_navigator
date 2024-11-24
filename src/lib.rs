@@ -121,6 +121,22 @@ pub struct NavMesh {
     transform: Transform,
 }
 
+pub fn to_glam2(v: Vec2) -> glam::Vec2 {
+    glam::Vec2::new(v.x, v.y)
+}
+
+pub fn to_glam3(v: Vec3) -> glam::Vec3 {
+    glam::Vec3::new(v.x, v.y, v.z)
+}
+
+pub fn to_bevy2(v: glam::Vec2) -> Vec2 {
+    Vec2::new(v.x, v.y)
+}
+
+pub fn to_bevy3(v: glam::Vec3) -> Vec3 {
+    Vec3::new(v.x, v.y, v.z)
+}
+
 impl NavMesh {
     /// Builds a [`NavMesh`] from a Polyanya [`Mesh`](polyanya::Mesh)
     pub fn from_polyanya_mesh(mesh: polyanya::Mesh) -> NavMesh {
@@ -146,7 +162,7 @@ impl NavMesh {
         let vertices = get_vectors(mesh, Mesh::ATTRIBUTE_POSITION)
             .expect("can't extract a navmesh from a mesh without `Mesh::ATTRIBUTE_POSITION`")
             .map(|vertex| rotation_reverse.mul_vec3(vertex))
-            .map(|coords| coords.xy())
+            .map(|coords| to_glam2(coords.xy()))
             .collect();
 
         let triangles = mesh
@@ -186,8 +202,11 @@ impl NavMesh {
     ///
     /// Depending on the scale of your mesh, you should change the [`Self::search_delta`] value using [`Self::set_search_delta`].
     pub fn from_edge_and_obstacles(edges: Vec<Vec2>, obstacles: Vec<Vec<Vec2>>) -> NavMesh {
-        let mut triangulation = Triangulation::from_outer_edges(&edges);
-        triangulation.add_obstacles(obstacles);
+        let glam_edges: Vec<glam::Vec2> = edges.iter().map(|e| to_glam2(*e)).collect();
+        let glam_obstacles: Vec<Vec<glam::Vec2>> = obstacles.iter().map(|o| o.iter().map(|v| to_glam2(*v)).collect()).collect();
+
+        let mut triangulation = Triangulation::from_outer_edges(&glam_edges);
+        triangulation.add_obstacles(glam_obstacles);
 
         let mut mesh: polyanya::Mesh = triangulation.as_navmesh();
         triangulation.simplify(0.001);
@@ -247,7 +266,7 @@ impl NavMesh {
     /// Asynchronously finds the shortest path between two points.
     #[inline]
     pub async fn get_path(&self, from: Vec2, to: Vec2) -> Option<Path> {
-        self.mesh.get_path(from, to).await
+        self.mesh.get_path(to_glam2(from), to_glam2(to)).await
     }
 
     /// Asynchronously finds the shortest path between two points.
@@ -256,14 +275,14 @@ impl NavMesh {
     pub async fn get_transformed_path(&self, from: Vec3, to: Vec3) -> Option<TransformedPath> {
         let inner_from = self.world_to_mesh().transform_point(from).xy();
         let inner_to = self.world_to_mesh().transform_point(to).xy();
-        let path = self.mesh.get_path(inner_from, inner_to).await;
+        let path = self.mesh.get_path(to_glam2(inner_from), to_glam2(inner_to)).await;
         path.map(|path| self.transform_path(path))
     }
 
     /// Finds the shortest path between two points.
     #[inline]
     pub fn path(&self, from: Vec2, to: Vec2) -> Option<Path> {
-        self.mesh.path(from, to)
+        self.mesh.path(to_glam2(from), to_glam2(to))
     }
 
     /// Finds the shortest path between two points.
@@ -272,7 +291,7 @@ impl NavMesh {
     pub fn transformed_path(&self, from: Vec3, to: Vec3) -> Option<TransformedPath> {
         let inner_from = self.world_to_mesh().transform_point(from).xy();
         let inner_to = self.world_to_mesh().transform_point(to).xy();
-        let path = self.mesh.path(inner_from, inner_to);
+        let path = self.mesh.path(to_glam2(inner_from), to_glam2(inner_to));
         path.map(|path| self.transform_path(path))
     }
 
@@ -284,7 +303,7 @@ impl NavMesh {
             path: path
                 .path
                 .into_iter()
-                .map(|coords| transform.transform_point(coords.extend(0.0)))
+                .map(|coords| transform.transform_point(to_bevy3(coords.extend(0.0))))
                 .collect(),
             #[cfg(feature = "detailed-layers")]
             path_with_layers: path
@@ -300,18 +319,18 @@ impl NavMesh {
     /// If the point can be in multiple layers, in case of overlapping layers, returns all possible layers.
     pub fn get_point_layer(&self, point: Vec3) -> Vec<polyanya::Coords> {
         let point_in_navmesh = self.world_to_mesh().transform_point(point).xy();
-        self.mesh.get_point_layer(point_in_navmesh)
+        self.mesh.get_point_layer(to_glam2(point_in_navmesh))
     }
 
     /// Checks if a 3D point is within a navigable part of the mesh, using the [`NavMesh::transform`].
     pub fn transformed_is_in_mesh(&self, point: Vec3) -> bool {
         let point_in_navmesh = self.world_to_mesh().transform_point(point).xy();
-        self.mesh.point_in_mesh(point_in_navmesh)
+        self.mesh.point_in_mesh(to_glam2(point_in_navmesh))
     }
 
     /// Checks if a point is within a navigable part of the mesh.
     pub fn is_in_mesh(&self, point: Vec2) -> bool {
-        self.mesh.point_in_mesh(point)
+        self.mesh.point_in_mesh(to_glam2(point))
     }
 
     /// Retrieves the transform used to convert world coordinates into mesh coordinates.
@@ -340,7 +359,7 @@ impl NavMesh {
                 .vertices
                 .iter()
                 .map(|v| v.coords.extend(0.0))
-                .map(|coords| mesh_to_world.transform_point(coords).into())
+                .map(|coords| mesh_to_world.transform_point(to_bevy3(coords)).into())
                 .collect::<Vec<[f32; 3]>>(),
         );
         new_mesh.insert_indices(Indices::U32(
@@ -441,13 +460,13 @@ pub fn display_navmesh(
                     .vertices
                     .iter()
                     .filter(|i| **i != u32::MAX)
-                    .map(|i| layer.vertices[*i as usize].coords * scale)
+                    .map(|i| to_bevy2(layer.vertices[*i as usize].coords) * scale)
                     .map(|v| mesh_to_world.transform_point(v.extend(0.0)))
                     .collect::<Vec<_>>();
                 if !v.is_empty() {
                     let first = polygon.vertices[0];
                     let first = &layer.vertices[first as usize];
-                    v.push(mesh_to_world.transform_point((first.coords * scale).extend(0.0)));
+                    v.push(mesh_to_world.transform_point((to_bevy2(first.coords) * scale).extend(0.0)));
                     gizmos.linestrip(v, color);
                 }
             }
