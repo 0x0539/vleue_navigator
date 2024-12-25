@@ -44,7 +44,8 @@ NavMesh building:
 
 ## Bevy Supported Versions
 
-|Bevy|vleue_navigator|
-|---|---|
-|0.14|0.8|
-|0.13|0.7|
+|Bevy|vleue_navigator|avian|
+|---|---|---|
+|0.15|0.11.1|0.2|
+|0.14|0.10|0.1|
+|0.13|0.7|x|
